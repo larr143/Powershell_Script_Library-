@@ -1,6 +1,7 @@
 import os 
 
 def main():
+    
     #creating the library for the user or finding current library 
     dirList = os.listdir()
     
@@ -29,7 +30,7 @@ def main():
             path = os.path.join(cwd, "scriptLibrary", 'ScriptLibrary.txt')
             configFile = open(path, 'x')
         
-
+    
     configFile.write('hi')
     configFile.close()
         
