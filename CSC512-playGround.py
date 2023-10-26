@@ -29,7 +29,7 @@ class windows(tk.Tk):
             # the windows class acts as the root window for the frames.
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
-
+        
         # Using a method to switch frames
         self.show_frame(MainPage)
         
@@ -38,25 +38,27 @@ class windows(tk.Tk):
         # raises the current frame to the top
         frame.tkraise()
         
-            
+        
         
 class MainPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.config = find_or_create_config()
+        self.what_to_display()
+        
+    def clear_page(self):
+        # Destroy all widgets inside the frame
+        for widget in self.winfo_children():
+            widget.destroy()
+
+    def what_to_display(self):
+        
+        self.clear_page()
+        
         
         label = tk.Label(self, text="Welcome To Your Script Library!")
         label.pack(padx=10, pady=10)
-        
-        self.controller = controller
-        
-        self.config = find_or_create_config()
-        
-        self.what_to_display()
-        
-        
-    
-
-    def what_to_display(self):
         
         if self.config.read() == "":
             label = tk.Label(self, text= "Please click on find or create library button to create or find your script library.")
@@ -71,6 +73,7 @@ class MainPage(tk.Frame):
             
         else:
              
+            
             # We use the switch_to_search_button in order to call the show_frame() method as a lambda function
             switch_to_search_button = tk.Button(
                 self,
