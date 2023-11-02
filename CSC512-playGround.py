@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import ttk
 import os 
 
 class windows(tk.Tk):
