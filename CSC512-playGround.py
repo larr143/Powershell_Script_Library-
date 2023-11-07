@@ -49,7 +49,7 @@ class MainPage(tk.Frame):
     def clear_page(self):
         # Destroy all widgets inside the frame
         for widget in self.winfo_children():
-            widget.destroy()
+            widget.destroy()    
 
     def what_to_display(self):
         
