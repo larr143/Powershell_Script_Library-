@@ -32,6 +32,9 @@ class windows(tk.Tk):
         # Using a method to switch frames
         self.show_frame(MainPage)
         
+        
+        
+        
     def show_frame(self, cont):
         frame = self.frames[cont]
         # raises the current frame to the top
