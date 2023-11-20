@@ -25,19 +25,16 @@ class windows(tk.Tk):
         for F in (MainPage, SearchPage,TreeSearch,BasicSearch, LibraryCreatorOrLocator):
             frame = F(container, self)
 
-            # the windows class acts as the root window for the frames.
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
         
         # Using a method to switch frames
-        self.show_frame(MainPage)
-        
-        
-        
+        self.show_frame(MainPage) 
         
     def show_frame(self, cont):
         frame = self.frames[cont]
-        # raises the current frame to the top
+        if cont is MainPage: [frame.config_init(), frame.what_to_display()]
+        if cont is TreeSearch: frame.directory_display()
         frame.tkraise()
         
         
@@ -46,18 +43,19 @@ class MainPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        self.config = find_or_create_config()
-        self.what_to_display()
+        self.config = None
         
     def clear_page(self):
         # Destroy all widgets inside the frame
         for widget in self.winfo_children():
-            widget.destroy()    
+            widget.destroy() 
+            
+    def config_init(self):  
+        self.config = find_or_create_config()
 
     def what_to_display(self):
         
         self.clear_page()
-        
         
         label = tk.Label(self, text="Welcome To Your Script Library!")
         label.pack(padx=10, pady=10)
@@ -68,7 +66,7 @@ class MainPage(tk.Frame):
             switch_to_Config_button = tk.Button(
                 self,
                 text="Find Or Create Library",
-                command=lambda: self.controller.show_frame(LibraryCreatorOrLocator),
+                command=lambda: [self.controller.show_frame(LibraryCreatorOrLocator), self.config.close()],
             )
             switch_to_Config_button.pack(side="bottom", fill=tk.X)
    
@@ -80,7 +78,7 @@ class MainPage(tk.Frame):
             switch_to_search_button = tk.Button(
                 self,
                 text="Search For Scripts",
-                command=lambda: self.controller.show_frame(SearchPage),
+                command=lambda: [self.controller.show_frame(SearchPage), self.config.close()],
             )
             switch_to_search_button.pack(side="bottom", fill=tk.X)
         
@@ -88,17 +86,16 @@ class MainPage(tk.Frame):
             switch_to_TreeSearch_button = tk.Button(
                 self,
                 text="Tree Script Search",
-            command=lambda: self.controller.show_frame(TreeSearch),
+            command=lambda: [self.controller.show_frame(TreeSearch), self.config.close()],
             )
             switch_to_TreeSearch_button.pack(side="bottom", fill=tk.X)
         
             switch_to_BasicSearch_button = tk.Button(
                 self,
                 text="Basic Script Search",
-                command=lambda: self.controller.show_frame(BasicSearch),
+                command=lambda: [self.controller.show_frame(BasicSearch), self.config.close()],
             )
             switch_to_BasicSearch_button.pack(side="bottom", fill=tk.X)
-
 
 class LibraryCreatorOrLocator(tk.Frame):
     def __init__(self, parent, controller):
@@ -106,10 +103,8 @@ class LibraryCreatorOrLocator(tk.Frame):
         
         self.controller = controller
         
-        label = tk.Label(self, text = "Please input the path of your script libary or the path where you want the library created.")
+        label = tk.Label(self, text = "Please input the path of your script library or the path where you want the library created.")
         label.pack(padx=10, pady=10)
-        
-        self.config = find_or_create_config()
         
         self.path = ""
         
@@ -121,6 +116,8 @@ class LibraryCreatorOrLocator(tk.Frame):
         
 
     def find_path(self):
+        
+        self.config = find_or_create_config()
         
         self.path = self.entry1.get()
         
@@ -135,8 +132,6 @@ class LibraryCreatorOrLocator(tk.Frame):
                     
                     self.config.close()
                     
-                    self.controller.frames[MainPage].what_to_display()
-                    
                     self.controller.show_frame(MainPage)
                 
                 
@@ -146,7 +141,7 @@ class LibraryCreatorOrLocator(tk.Frame):
                     
                     self.config.write(self.path)
                     
-                    self.controller.frames[MainPage].what_to_display()
+                    self.config.close()
                     
                     self.controller.show_frame(MainPage)
                 
@@ -156,10 +151,6 @@ class LibraryCreatorOrLocator(tk.Frame):
         else:
             self.path = ""
         
-        
-
-
-
 class SearchPage(tk.Frame):
     
     def __init__(self, parent, controller):
@@ -179,16 +170,52 @@ class TreeSearch(tk.Frame):
     
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        self.library_path = ""
+        self.working_path = ""
+        self.config = None
         
         label = tk.Label(self, text="Welcome to Tree Search")
         label.pack(padx=10, pady=10)
         
+        self.file_list = tk.Listbox(self)
+        self.file_list.pack(padx = 10, pady = 10)
+        
         go_Back_Button = tk.Button(
             self,
-            text="Go Back",
-            command=lambda: controller.show_frame(MainPage),
+            text="Go to home page",
+            command=lambda: [controller.show_frame(MainPage), self.config.close()],
         )
         go_Back_Button.pack(side="bottom", fill=tk.X)
+        
+        leave_current_file = tk.Button(
+            self,
+            text="Leave Current file",
+            command=lambda:  [self.go_back(), self.path_to_cwd_list()]
+        )
+        go_Back_Button.pack(side="bottom", fill=tk.X)
+        
+        
+    def directory_display(self):
+        self.config = find_or_create_config()
+        self.working_path = self.library_path = self.config.read()
+        self.config.close()
+        self.path_to_cwd_list()
+            
+            
+    def path_to_cwd_list(self):
+        
+        dr_list = os.listdir(self.working_path)
+        
+        self.file_list.delete(0, tk.END)
+        
+        for item in dr_list:
+            self.file_list.insert(tk.END, item)
+            
+    def go_back(self):
+        pass
+        
+    
+        
         
 class BasicSearch(tk.Frame):
     
@@ -204,45 +231,25 @@ class BasicSearch(tk.Frame):
             command=lambda: controller.show_frame(MainPage),
         )
         go_Back_Button.pack(side="bottom", fill=tk.X)
-        
-        
+             
         
 def find_or_create_config():
-    
-    # Grabbing current directory list
-    dirList = os.listdir()
-     
-    # finding script library file 
-    if 'scriptLibrary' in dirList:
-        # Creates the path to the found file 
-        dirList = os.listdir(os.path.join(os.getcwd() + '/scriptLibrary'))
-        
-        #Checks if the config file exists, if so it sets config file to read and write on the file. 
-        if 'ScriptLibrary.txt' in dirList:
-            configFile = open((os.path.join(os.getcwd() + '/scriptLibrary' + "/ScriptLibrary.txt")), "w+")
-        
-        # If it doesnt exist it creates the config file
-        else:
-            cwd = os.getcwd()
-            path = os.path.join(cwd, "/scriptLibrary", '/ScriptLibrary.txt')
-            configFile = open(path, 'x')
-           
-    # if it doesnt exist it creates the file and config text file  
-    else:
-        cwd = os.getcwd()
-        path = os.path.join(cwd, "scriptLibrary")
-        os.makedirs(path)
-        dirList = os.listdir(os.path.join(os.getcwd() + '/scriptLibrary'))
-        
-        if 'ScriptLibrary.txt' in dirList:
-            configFile = open((os.path.join(os.getcwd() + '/scriptLibrary' + "/ScriptLibrary.txt")), "w+")
+    script_library_path = os.path.join(os.getcwd(), 'scriptLibrary')
+    script_library_file_path = os.path.join(script_library_path, 'ScriptLibrary.txt')
 
-        else:
-            cwd = os.getcwd()
-            path = os.path.join(cwd, "/scriptLibrary", '/ScriptLibrary.txt')
-            configFile = open(path, 'x')
-           
-    return(configFile)
+    # Check if the script library directory exists
+    if not os.path.exists(script_library_path):
+        os.makedirs(script_library_path)
+
+    # Check if the ScriptLibrary.txt file exists
+    if not os.path.exists(script_library_file_path):
+        with open(script_library_file_path, 'w') as configFile:
+            # Write default content or leave it empty
+            pass
+
+    # Open the file in read mode
+    configFile = open(script_library_file_path, 'r+')
+    return configFile
         
         
         
