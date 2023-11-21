@@ -1,5 +1,25 @@
+from pydoc import synopsis
 import tkinter as tk
+from tkinter import ttk
 import os 
+import tkinter.messagebox
+
+""" Normal Powershell comment
+
+ <#
+.SYNOPSIS
+    A brief description of the function or script. This keyword can be used
+    only once in each topic.
+.DESCRIPTION
+    A detailed description of the function or script. This keyword can be
+    used only once in each topic.
+.NOTES
+    Author: 
+    Date: 
+#>
+
+"""
+
 
 class windows(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -36,8 +56,6 @@ class windows(tk.Tk):
         if cont is MainPage: [frame.config_init(), frame.what_to_display()]
         if cont is TreeSearch: frame.directory_display()
         frame.tkraise()
-        
-        
         
 class MainPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -170,50 +188,182 @@ class TreeSearch(tk.Frame):
     
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        self.controller = controller
         self.library_path = ""
         self.working_path = ""
         self.config = None
         
-        label = tk.Label(self, text="Welcome to Tree Search")
-        label.pack(padx=10, pady=10)
+    def window_fill_and_style(self, script_edit = False, path = None):
         
-        self.file_list = tk.Listbox(self)
-        self.file_list.pack(padx = 10, pady = 10)
+        self.clear_page()
         
-        go_Back_Button = tk.Button(
-            self,
-            text="Go to home page",
-            command=lambda: [controller.show_frame(MainPage), self.config.close()],
-        )
-        go_Back_Button.pack(side="bottom", fill=tk.X)
+        if script_edit == False:
+            label = tk.Label(self, text="Welcome to Tree Search")
+            self.file_list = tk.Listbox(self)
+            self.text_display = tk.Text(self)
         
-        leave_current_file = tk.Button(
-            self,
-            text="Leave Current file",
-            command=lambda:  [self.go_back(), self.path_to_cwd_list()]
-        )
-        go_Back_Button.pack(side="bottom", fill=tk.X)
+            self.go_Back_Button = tk.Button(
+                self, text="Go to home page",
+                command=lambda: [self.controller.show_frame(MainPage), self.config.close()],
+            )
+            self.leave_current_file = tk.Button(
+                self, text="Leave Current file",
+                command=lambda:  self.path_to_cwd_list(go_back=True)
+            )
+            self.open_selected_file = tk.Button(
+                self, text="Open Selected File",
+                command=lambda:  self.path_to_cwd_list(
+                    self.file_list.get(self.file_list.curselection())
+                    )
+            )
+            self.run_script = tk.Button(
+                self, text="Run Script",
+                command=lambda:  self.power_shell_display()
+            )
+            
+            label.grid(column=0, row=0, sticky="nsew", columnspan=2, pady=2, padx=2)
+            self.file_list.grid(column=0, row=1, sticky="nsew", pady=2, padx=2)
+            self.text_display.grid(column=1, row=1, sticky="nsew", pady=2, padx=2)
+            self.open_selected_file.grid(column=0, row=2, sticky="nsew", pady=2, padx=2)
+            self.go_Back_Button.grid(column=1, row=2, pady=2, padx=2, sticky="e")
+            self.leave_current_file.grid(column=1, row=2, sticky="w", pady=2, padx=2)
+
+            self.grid_rowconfigure(0, weight=1)
+            self.grid_columnconfigure(1, weight=1)
+            
+            self.file_list.bind("<<ListboxSelect>>", self.show_content)
+            
+        if script_edit == True and os.path.exists(path): 
+            
+            self.script_edit_label = tk.Label(self, text="Please fill in at minimum the summary and author box.")
+            
+            synopsis_label = tk.Label(self, text="Summary:")
+            description_label = tk.Label(self, text="Full description: ")
+            notes_label = tk.Label(self, text="Author: ")
+            extra_notes_label = tk.Label(self, text="Notes: ")
+            
+            self.synopsis_entry_box = tk.Text(self, width= 40, height=5)
+            self.description_entry_box = tk.Text(self, width= 40, height=5)
+            self.notes_entry_box = tk.Text(self, width= 40, height=5)
+            self.extra_notes_entry_box = tk.Text(self, width= 40, height=5)
+            
+            done_button = tk.Button(
+                self, text="Done",
+                command=lambda:  self.script_comment_adder(path)
+            )
+            
+            self.script_edit_label.grid(column=0 , row= 0, sticky="nsew", columnspan=2, padx= 2, pady =7)
+            
+            synopsis_label.grid(column=0, row=1, padx= 2, pady =5)
+            description_label.grid(column=0, row=2, padx= 2, pady =5)
+            notes_label.grid(column=0, row=3, padx= 2, pady =5)
+            extra_notes_label.grid(column=0, row=4, padx= 2, pady =5)
+            
+            self.synopsis_entry_box.grid(column=1, row=1, padx= 2, pady =5)
+            self.description_entry_box.grid(column=1, row=2, padx= 2, pady =5)
+            self.notes_entry_box.grid(column=1, row=3, padx= 2, pady =5)
+            self.extra_notes_entry_box.grid(column=1, row=4, padx= 2, pady =5)
+            
+            done_button.grid(column= 0, row=5, sticky="nsew", columnspan=2, padx=2, pady=7)
+            
+    def script_comment_adder(self, path):
         
+        readable_file = open(path, encoding='utf-8-sig' , mode="r")
+        readable_file_contents = readable_file.read()
+        
+        if "<#" in readable_file_contents: 
+                readable_file.close()
+                writable_file = open(path, encoding='utf-8-sig' , mode="w+")
+                readable_file_contents = readable_file_contents.split("<#")[0]
+                writable_file.write(readable_file_contents)
+                writable_file.close()
+        else:
+            readable_file.close()
+        
+        file = open(path, encoding='utf-8-sig' , mode="a")
+        
+        if len(self.synopsis_entry_box.get('1.0', 'end-1c')) > 0 and len(self.notes_entry_box.get('1.0', 'end-1c')) > 0:
+            
+            synopsis = self.synopsis_entry_box.get('1.0', 'end-1c')
+            description = self.description_entry_box.get('1.0', 'end-1c')
+            author = self.notes_entry_box.get('1.0', 'end-1c')
+            extra_notes = self.extra_notes_entry_box.get('1.0', 'end-1c')
+            
+            comment = ( "\n\n" + "<#" + "\n\n" + ".SYNOPSIS" + "\n" + "   " +
+                synopsis + "\n\n" +  ".DESCRIPTION" + "\n" + "   " + description + 
+                "\n\n" + ".NOTES" + "\n" + "Author: " + author + "\n" + 
+                extra_notes + "\n\n" + "#>" 
+            )
+            
+            file.write(comment)
+            file.close()
+            self.directory_display()
+            
+            
+            
         
     def directory_display(self):
+        self.window_fill_and_style()
         self.config = find_or_create_config()
         self.working_path = self.library_path = self.config.read()
         self.config.close()
         self.path_to_cwd_list()
+        
+    def show_content(self, event):
+        x = self.file_list.curselection()[0]
+        file = os.path.join(self.working_path, self.file_list.get(x))
+        
+        if ".txt" in file:
+            with open(file) as file:
+                file = file.read()
+            self.text_display.delete('1.0', tk.END)
+            self.text_display.insert(tk.END, file)
+        elif ".ps1" in file:
+            self.power_shell_display(file, run=False)
+        else: 
+            self.text_display.delete('1.0', tk.END)
+            self.text_display.insert(tk.END, "This is a folder named: " + os.path.basename(file))
             
+    def power_shell_display(self, path, run = True):
+        
+        if run == True:
+            pass
+        if run == False:
+            with open(path, encoding='utf-8-sig') as file:
+                file = file.read()
+            if "<#" and "#>" and ".SYNOPSIS" not in file:
+                tkinter.messagebox.showinfo("Script Issue", "You are going to be redirected to a script editing page.")
+                self.window_fill_and_style(script_edit=True, path=path)
+            else: 
+                self.text_display.delete('1.0', tk.END)
+                self.text_display.insert(tk.END, file)
+                
             
-    def path_to_cwd_list(self):
+    
+    def path_to_cwd_list(self, pathToJoin = None, go_back = None):
+        
+        if go_back == True:
+            self.working_path = os.path.dirname(self.working_path)
+        
+        if pathToJoin != None:
+            self.working_path = os.path.join(self.working_path, pathToJoin)
         
         dr_list = os.listdir(self.working_path)
         
         self.file_list.delete(0, tk.END)
         
         for item in dr_list:
-            self.file_list.insert(tk.END, item)
-            
-    def go_back(self):
-        pass
-        
+            if ".txt" in item:
+                self.file_list.insert(tk.END, item)
+            if "." not in item:
+                self.file_list.insert(tk.END, item)
+            if ".ps1" in item:
+                self.file_list.insert(tk.END, item)
+    
+    def clear_page(self):
+        # Destroy all widgets inside the frame
+        for widget in self.winfo_children():
+            widget.destroy() 
     
         
         
