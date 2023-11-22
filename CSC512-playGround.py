@@ -1,25 +1,14 @@
+from ast import Pass
+from logging import captureWarnings
+from operator import contains
 from pydoc import synopsis
 import tkinter as tk
-from tkinter import ttk
+from tkinter import DISABLED, ttk
 import os 
 import tkinter.messagebox
-
-""" Normal Powershell comment
-
- <#
-.SYNOPSIS
-    A brief description of the function or script. This keyword can be used
-    only once in each topic.
-.DESCRIPTION
-    A detailed description of the function or script. This keyword can be
-    used only once in each topic.
-.NOTES
-    Author: 
-    Date: 
-#>
-
-"""
-
+import re
+import subprocess
+import sys
 
 class windows(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -192,8 +181,9 @@ class TreeSearch(tk.Frame):
         self.library_path = ""
         self.working_path = ""
         self.config = None
+    
         
-    def window_fill_and_style(self, script_edit = False, path = None):
+    def window_fill(self, script_edit = False, path = None):
         
         self.clear_page()
         
@@ -201,6 +191,7 @@ class TreeSearch(tk.Frame):
             label = tk.Label(self, text="Welcome to Tree Search")
             self.file_list = tk.Listbox(self)
             self.text_display = tk.Text(self)
+            self.script_description_display = tk.Text(self)
         
             self.go_Back_Button = tk.Button(
                 self, text="Go to home page",
@@ -218,18 +209,26 @@ class TreeSearch(tk.Frame):
             )
             self.run_script = tk.Button(
                 self, text="Run Script",
-                command=lambda:  self.power_shell_display()
+                command=lambda:  self.power_shell_display(self.file_list.curselection()[0], run=True)
             )
             
             label.grid(column=0, row=0, sticky="nsew", columnspan=2, pady=2, padx=2)
-            self.file_list.grid(column=0, row=1, sticky="nsew", pady=2, padx=2)
+            self.file_list.grid(column=0, row=1, rowspan=2, sticky="nsew", pady=2, padx=2)
+            
             self.text_display.grid(column=1, row=1, sticky="nsew", pady=2, padx=2)
-            self.open_selected_file.grid(column=0, row=2, sticky="nsew", pady=2, padx=2)
-            self.go_Back_Button.grid(column=1, row=2, pady=2, padx=2, sticky="e")
-            self.leave_current_file.grid(column=1, row=2, sticky="w", pady=2, padx=2)
+            self.script_description_display.grid(column=1, row=2, sticky="nsew", pady=2, padx=2)
+            self.text_display.config(height=10)
+            self.script_description_display.config(height=10)
+            
+            self.open_selected_file.grid(column=0, row=3, sticky="nsew", pady=2, padx=2)
+            self.go_Back_Button.grid(column=1, row=3, pady=2, padx=2, sticky="e")
+            self.leave_current_file.grid(column=1, row=3, sticky="w", pady=2, padx=2)
+            self.run_script.grid(column=1, row=3, pady=2, padx=2)
 
             self.grid_rowconfigure(0, weight=1)
             self.grid_columnconfigure(1, weight=1)
+            
+            # self.text_display.configure(state="disabled")
             
             self.file_list.bind("<<ListboxSelect>>", self.show_content)
             
@@ -266,6 +265,8 @@ class TreeSearch(tk.Frame):
             
             done_button.grid(column= 0, row=5, sticky="nsew", columnspan=2, padx=2, pady=7)
             
+          
+            
     def script_comment_adder(self, path):
         
         readable_file = open(path, encoding='utf-8-sig' , mode="r")
@@ -298,47 +299,95 @@ class TreeSearch(tk.Frame):
             file.write(comment)
             file.close()
             self.directory_display()
-            
-            
-            
+               
         
     def directory_display(self):
-        self.window_fill_and_style()
+        self.window_fill()
+        self.run_script["state"] = "disabled"
         self.config = find_or_create_config()
         self.working_path = self.library_path = self.config.read()
         self.config.close()
         self.path_to_cwd_list()
         
-    def show_content(self, event):
-        x = self.file_list.curselection()[0]
-        file = os.path.join(self.working_path, self.file_list.get(x))
+       
         
-        if ".txt" in file:
-            with open(file) as file:
-                file = file.read()
-            self.text_display.delete('1.0', tk.END)
-            self.text_display.insert(tk.END, file)
-        elif ".ps1" in file:
-            self.power_shell_display(file, run=False)
-        else: 
-            self.text_display.delete('1.0', tk.END)
-            self.text_display.insert(tk.END, "This is a folder named: " + os.path.basename(file))
+    def show_content(self, event):
+        
+        try:
+            x = self.file_list.curselection()[0]
+            file = os.path.join(self.working_path, self.file_list.get(x))
+            
+            if ".txt" in file:
+                with open(file) as file:
+                    file = file.read()
+                self.run_script["state"] = "disabled"
+                self.text_display.delete('1.0', tk.END)
+                self.text_display.insert(tk.END, file)
+            elif ".ps1" in file:
+                self.power_shell_display(file, run=False)
+                self.run_script["state"] = "normal"
+            else: 
+                self.run_script["state"] = "disabled"
+                self.text_display.delete('1.0', tk.END)
+                self.text_display.insert(tk.END, "This is a folder named: " + os.path.basename(file)) 
+            
+        except: IndexError
+            # need to fix 
+            
             
     def power_shell_display(self, path, run = True):
         
         if run == True:
-            pass
+            path = os.path.join(self.working_path, self.file_list.get(path)) 
+            
+            p = subprocess.Popen(
+            [
+                "powershell.exe", 
+                "-noprofile", "-c",
+                r""" exit (Start-Process -Verb RunAs -PassThru -Wait powershell.exe -Args "
+                        -noprofile -c Set-Location \`"$PWD\`"; & {path}; exit `$LASTEXITCODE
+                    "
+                ).ExitCode
+                """.format(path=path)
+            ],
+            stdout=sys.stdout
+            )
+            p.communicate()
+            
+            self.text_display.delete('1.0', tk.END)
+            self.text_display.insert(tk.END, "The selected Script ran! It terminated with exit code: " + str(p.returncode))
+            
         if run == False:
             with open(path, encoding='utf-8-sig') as file:
                 file = file.read()
             if "<#" and "#>" and ".SYNOPSIS" not in file:
-                tkinter.messagebox.showinfo("Script Issue", "You are going to be redirected to a script editing page.")
-                self.window_fill_and_style(script_edit=True, path=path)
+                tkinter.messagebox.showinfo("Script Issue, you are going to be redirected to a script editing page to add comments.")
+                self.window_fill(script_edit=True, path=path)
             else: 
                 self.text_display.delete('1.0', tk.END)
-                self.text_display.insert(tk.END, file)
+                self.script_description_display.delete('1.0', tk.END)
+                script = file.split("<#")
+                self.text_display.insert(tk.END, script[0])
                 
-            
+                # Define the patterns for each section
+                synopsis_pattern = re.compile(r'\.SYNOPSIS(.*?)(\.|\#>)', re.DOTALL)
+                description_pattern = re.compile(r'\.DESCRIPTION(.*?)(\.|\#>)', re.DOTALL)
+                notes_pattern = re.compile(r'\.NOTES(.*?)(\.|\#>)', re.DOTALL)
+
+                # Extract content for each section
+                synopsis_match = synopsis_pattern.search(script[1])
+                description_match = description_pattern.search(script[1])
+                notes_match = notes_pattern.search(script[1])
+
+                # Get the content from the matches
+                synopsis_content = synopsis_match.group(1).strip() if synopsis_match else None
+                description_content = description_match.group(1).strip() if description_match else None
+                notes_content = notes_match.group(1).strip() if notes_match else None
+                
+                self.script_description_display.insert(tk.END, "Summary of script: \n" + synopsis_content + "\n\n" +
+                    "Full description of script: \n" + description_content + "\n\n" + "Script notes: \n" + notes_content)
+        
+                 
     
     def path_to_cwd_list(self, pathToJoin = None, go_back = None):
         
@@ -400,9 +449,7 @@ def find_or_create_config():
     # Open the file in read mode
     configFile = open(script_library_file_path, 'r+')
     return configFile
-        
-        
-        
+            
 if __name__ == "__main__":
     testObj = windows()
     testObj.mainloop()
