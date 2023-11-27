@@ -3,12 +3,13 @@ from logging import captureWarnings
 from operator import contains
 from pydoc import synopsis
 import tkinter as tk
-from tkinter import DISABLED, ttk
+from tkinter import ttk
 import os 
 import tkinter.messagebox
 import re
 import subprocess
 import sys
+from turtle import back
 
 class windows(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -31,7 +32,7 @@ class windows(tk.Tk):
         self.frames = {}
         
         # we'll create the frames themselves later but let's add the components to the dictionary.
-        for F in (MainPage, SearchPage,TreeSearch,BasicSearch, LibraryCreatorOrLocator):
+        for F in (MainPage, SearchPage,TreeSearch, LibraryCreatorOrLocator):
             frame = F(container, self)
 
             self.frames[F] = frame
@@ -51,7 +52,7 @@ class MainPage(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.controller = controller
         self.config = None
-        
+   
     def clear_page(self):
         # Destroy all widgets inside the frame
         for widget in self.winfo_children():
@@ -96,13 +97,6 @@ class MainPage(tk.Frame):
             command=lambda: [self.controller.show_frame(TreeSearch), self.config.close()],
             )
             switch_to_TreeSearch_button.pack(side="bottom", fill=tk.X)
-        
-            switch_to_BasicSearch_button = tk.Button(
-                self,
-                text="Basic Script Search",
-                command=lambda: [self.controller.show_frame(BasicSearch), self.config.close()],
-            )
-            switch_to_BasicSearch_button.pack(side="bottom", fill=tk.X)
 
 class LibraryCreatorOrLocator(tk.Frame):
     def __init__(self, parent, controller):
@@ -188,7 +182,7 @@ class TreeSearch(tk.Frame):
         self.clear_page()
         
         if script_edit == False:
-            label = tk.Label(self, text="Welcome to Tree Search")
+            self.label = tk.Label(self, text="Welcome to Tree Search")
             self.file_list = tk.Listbox(self)
             self.text_display = tk.Text(self)
             self.script_description_display = tk.Text(self)
@@ -212,25 +206,50 @@ class TreeSearch(tk.Frame):
                 command=lambda:  self.power_shell_display(self.file_list.curselection()[0], run=True)
             )
             
-            label.grid(column=0, row=0, sticky="nsew", columnspan=2, pady=2, padx=2)
-            self.file_list.grid(column=0, row=1, rowspan=2, sticky="nsew", pady=2, padx=2)
+            self.file_scroll_Y = ttk.Scrollbar(self, command=self.file_list.yview)
+            self.file_list['yscrollcommand'] = self.file_scroll_Y.set
             
-            self.text_display.grid(column=1, row=1, sticky="nsew", pady=2, padx=2)
-            self.script_description_display.grid(column=1, row=2, sticky="nsew", pady=2, padx=2)
+            self.text_scroll_Y = ttk.Scrollbar(self, command=self.text_display.yview)
+            self.text_display['yscrollcommand'] = self.text_scroll_Y.set
+            
+            self.script_scroll_Y = ttk.Scrollbar(self, 
+                command=self.script_description_display.yview)
+            self.script_description_display['yscrollcommand'] = self.script_scroll_Y.set
+            
+            
+            self.text_scroll_X = ttk.Scrollbar(self, orient="horizontal",
+                command=self.text_display.xview)
+            self.text_display['xscrollcommand'] = self.text_scroll_X.set
+            
+            self.script_scroll_X = ttk.Scrollbar(self, orient="horizontal",
+                command=self.script_description_display.xview)
+            self.script_description_display['xscrollcommand'] = self.script_scroll_X.set
+            
+            
+            self.label.grid(column=0, row=0, sticky="nsew", columnspan=4, pady=2, padx=2)
+            
+            self.file_list.grid(column=0, row=1, rowspan=4, sticky="nsew", pady=2, padx=2)
+            self.file_scroll_Y.grid(column=1, row=1, rowspan=4, sticky="nsew")
+            
+            self.text_display.grid(column=2, row=1, sticky="nsew", pady=2, padx=2)
+            self.text_scroll_Y.grid(column=3, row=1, sticky="nsew")
+            self.text_scroll_X.grid(column=2, row=2, sticky="nsew")
+            
+            self.script_description_display.grid(column=2, row=3, sticky="nsew", pady=2, padx=2)
+            self.script_scroll_Y.grid(column=3, row=3, sticky="nsew")
+            self.script_scroll_X.grid(column=2, row=4, sticky="nsew")
+            
             self.text_display.config(height=10)
             self.script_description_display.config(height=10)
             
-            self.open_selected_file.grid(column=0, row=3, sticky="nsew", pady=2, padx=2)
-            self.go_Back_Button.grid(column=1, row=3, pady=2, padx=2, sticky="e")
-            self.leave_current_file.grid(column=1, row=3, sticky="w", pady=2, padx=2)
-            self.run_script.grid(column=1, row=3, pady=2, padx=2)
-
-            self.grid_rowconfigure(0, weight=1)
-            self.grid_columnconfigure(1, weight=1)
-            
-            # self.text_display.configure(state="disabled")
+            self.open_selected_file.grid(column=0, row=5, pady=2, padx=2)
+            self.go_Back_Button.grid(column=2, row=5, pady=2, padx=2, sticky="e")
+            self.leave_current_file.grid(column=2, row=5, sticky="w", pady=2, padx=2)
+            self.run_script.grid(column=2, row=5, pady=2, padx=2)
             
             self.file_list.bind("<<ListboxSelect>>", self.show_content)
+            
+            self.window_style(window="main")
             
         if script_edit == True and os.path.exists(path): 
             
@@ -265,7 +284,34 @@ class TreeSearch(tk.Frame):
             
             done_button.grid(column= 0, row=5, sticky="nsew", columnspan=2, padx=2, pady=7)
             
-          
+    def window_style(self, window):
+        
+        if window == 'main':
+            
+            self.text_display.configure(font=("Consolas", 10), wrap=tk.NONE)
+            self.script_description_display.configure(font=("Consolas", 10), wrap=tk.NONE)
+            
+            self.grid_columnconfigure(0, weight=1)
+            self.grid_rowconfigure([0,1,3], weight=1)
+            
+            self.label.config(background="#1B1B1E", foreground="#F3B61F", font=(12))
+            
+            self.file_list.config(background="#1B1B1E", foreground="#F3B61F")
+            self.text_display.config(background="#1B1B1E", foreground="#F3B61F")
+            self.script_description_display.config(background="#1B1B1E", foreground="#F26157")
+            
+            style=ttk.Style(self)
+            style.theme_use('alt')
+            style.configure("Vertical.TScrollbar", relief = 0,
+                background="#8A4F7D", troughcolor = "#1B1B1E")
+            style.configure("Horizontal.TScrollbar", relief = 0, 
+                background="#8A4F7D", troughcolor = "#1B1B1E")
+        
+            self.configure(bg='#1B1B1E')
+        
+        else:
+            pass
+        
             
     def script_comment_adder(self, path):
         
@@ -300,7 +346,6 @@ class TreeSearch(tk.Frame):
             file.close()
             self.directory_display()
                
-        
     def directory_display(self):
         self.window_fill()
         self.run_script["state"] = "disabled"
@@ -308,9 +353,7 @@ class TreeSearch(tk.Frame):
         self.working_path = self.library_path = self.config.read()
         self.config.close()
         self.path_to_cwd_list()
-        
-       
-        
+             
     def show_content(self, event):
         
         try:
@@ -334,7 +377,7 @@ class TreeSearch(tk.Frame):
         except: IndexError
             # need to fix 
             
-            
+        
     def power_shell_display(self, path, run = True):
         
         if run == True:
@@ -350,12 +393,14 @@ class TreeSearch(tk.Frame):
                 ).ExitCode
                 """.format(path=path)
             ],
-            stdout=sys.stdout
+            stdout=subprocess.PIPE
             )
-            p.communicate()
+            output, err = p.communicate()
             
             self.text_display.delete('1.0', tk.END)
-            self.text_display.insert(tk.END, "The selected Script ran! It terminated with exit code: " + str(p.returncode))
+            self.text_display.insert(tk.END, "The selected Script ran! It terminated with this output: " + 
+                str(output) + "\n\nerr: " + str(err) + 
+                "\n\n (Note: if there is no output or an unintelligible output it most likely ran correctly)")
             
         if run == False:
             with open(path, encoding='utf-8-sig') as file:
@@ -385,9 +430,7 @@ class TreeSearch(tk.Frame):
                 notes_content = notes_match.group(1).strip() if notes_match else None
                 
                 self.script_description_display.insert(tk.END, "Summary of script: \n" + synopsis_content + "\n\n" +
-                    "Full description of script: \n" + description_content + "\n\n" + "Script notes: \n" + notes_content)
-        
-                 
+                    "Full description of script: \n" + description_content + "\n\n" + "Script notes: \n" + notes_content)               
     
     def path_to_cwd_list(self, pathToJoin = None, go_back = None):
         
@@ -414,22 +457,6 @@ class TreeSearch(tk.Frame):
         for widget in self.winfo_children():
             widget.destroy() 
     
-        
-        
-class BasicSearch(tk.Frame):
-    
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
-        
-        label = tk.Label(self, text="Welcome to Basic Search")
-        label.pack(padx=10, pady=10)
-        
-        go_Back_Button = tk.Button(
-            self,
-            text="Go Back",
-            command=lambda: controller.show_frame(MainPage),
-        )
-        go_Back_Button.pack(side="bottom", fill=tk.X)
              
         
 def find_or_create_config():
