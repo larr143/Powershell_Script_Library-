@@ -249,44 +249,47 @@ class TreeSearch(tk.Frame):
             
             self.file_list.bind("<<ListboxSelect>>", self.show_content)
             
-            self.window_style(window="main")
+            self.window_style()
             
         if script_edit == True and os.path.exists(path): 
             
             self.script_edit_label = tk.Label(self, text="Please fill in at minimum the summary and author box.")
             
-            synopsis_label = tk.Label(self, text="Summary:")
-            description_label = tk.Label(self, text="Full description: ")
-            notes_label = tk.Label(self, text="Author: ")
-            extra_notes_label = tk.Label(self, text="Notes: ")
+            self.synopsis_label = tk.Label(self, text="Summary:")
+            self.description_label = tk.Label(self, text="Full description: ")
+            self.notes_label = tk.Label(self, text="Author: ")
+            self.extra_notes_label = tk.Label(self, text="Notes: ")
             
-            self.synopsis_entry_box = tk.Text(self, width= 40, height=5)
-            self.description_entry_box = tk.Text(self, width= 40, height=5)
-            self.notes_entry_box = tk.Text(self, width= 40, height=5)
-            self.extra_notes_entry_box = tk.Text(self, width= 40, height=5)
+            self.synopsis_entry_box = tk.Text(self)
+            self.description_entry_box = tk.Text(self)
+            self.notes_entry_box = tk.Text(self)
+            self.extra_notes_entry_box = tk.Text(self)
             
-            done_button = tk.Button(
+            self.done_button = tk.Button(
                 self, text="Done",
                 command=lambda:  self.script_comment_adder(path)
             )
             
-            self.script_edit_label.grid(column=0 , row= 0, sticky="nsew", columnspan=2, padx= 2, pady =7)
+            self.script_edit_label.grid(column=0 , row= 0, sticky="nsew", columnspan=2, padx= 2, pady =2)
             
-            synopsis_label.grid(column=0, row=1, padx= 2, pady =5)
-            description_label.grid(column=0, row=2, padx= 2, pady =5)
-            notes_label.grid(column=0, row=3, padx= 2, pady =5)
-            extra_notes_label.grid(column=0, row=4, padx= 2, pady =5)
+            self.synopsis_label.grid(column=0, row=1, padx= 2, pady =2)
+            self.description_label.grid(column=0, row=2, padx= 2, pady =2)
+            self.notes_label.grid(column=0, row=3, padx= 2, pady =2)
+            self.extra_notes_label.grid(column=0, row=4, padx= 2, pady =2)
             
-            self.synopsis_entry_box.grid(column=1, row=1, padx= 2, pady =5)
-            self.description_entry_box.grid(column=1, row=2, padx= 2, pady =5)
-            self.notes_entry_box.grid(column=1, row=3, padx= 2, pady =5)
-            self.extra_notes_entry_box.grid(column=1, row=4, padx= 2, pady =5)
+            self.synopsis_entry_box.grid(column=1, row=1, padx= 2, pady =2)
+            self.description_entry_box.grid(column=1, row=2, padx= 2, pady =2)
+            self.notes_entry_box.grid(column=1, row=3, padx= 2, pady =2)
+            self.extra_notes_entry_box.grid(column=1, row=4, padx= 2, pady =2)
             
-            done_button.grid(column= 0, row=5, sticky="nsew", columnspan=2, padx=2, pady=7)
+            self.done_button.grid(column= 0, row=5, sticky="nsew", columnspan=2, padx=2, pady=7)
             
-    def window_style(self, window):
+            self.window_style(True)
+            
+    def window_style(self, script_edit=None):
         
-        if window == 'main':
+        if script_edit == None:
+            self.controller.geometry("800x600")
             
             self.text_display.configure(font=("Consolas", 10), wrap=tk.NONE)
             self.script_description_display.configure(font=("Consolas", 10), wrap=tk.NONE)
@@ -294,7 +297,7 @@ class TreeSearch(tk.Frame):
             self.grid_columnconfigure(0, weight=1)
             self.grid_rowconfigure([0,1,3], weight=1)
             
-            self.label.config(background="#1B1B1E", foreground="#F3B61F", font=(12))
+            self.label.config(background="#1B1B1E", foreground="#F3B61F", font=(14))
             
             self.file_list.config(background="#1B1B1E", foreground="#F3B61F")
             self.text_display.config(background="#1B1B1E", foreground="#F3B61F")
@@ -309,8 +312,30 @@ class TreeSearch(tk.Frame):
         
             self.configure(bg='#1B1B1E')
         
-        else:
-            pass
+        elif script_edit == True:
+            
+            self.controller.geometry("450x650")
+            
+            self.script_edit_label.config(background="#1B1B1E",
+                foreground="#F3B61F", font=(14))
+            
+            self.synopsis_label.config(background="#1B1B1E",
+                foreground="#F3B61F",font=(12))
+            self.description_label.config(background="#1B1B1E",
+                foreground="#F3B61F",font=(12))
+            self.notes_label.config(background="#1B1B1E",
+                foreground="#F3B61F",font=(12))
+            self.extra_notes_label.config(background="#1B1B1E",
+                foreground="#F3B61F",font=(12))
+            
+            self.synopsis_entry_box.config(width= 40, height=6, font=("Consolas", 10), background="#1B1B1E", foreground="#F26157")
+            self.description_entry_box.config(width= 40, height=6, font=("Consolas", 10), background="#1B1B1E", foreground="#F26157")
+            self.notes_entry_box.config(width= 40, height=6, font=("Consolas", 10), background="#1B1B1E", foreground="#F26157")
+            self.extra_notes_entry_box.config(width= 40, height=6, font=("Consolas", 10), background="#1B1B1E", foreground="#F26157")
+            
+            self.grid_columnconfigure(1, weight=1)
+            
+            self.configure(bg='#1B1B1E')
         
             
     def script_comment_adder(self, path):
@@ -377,10 +402,10 @@ class TreeSearch(tk.Frame):
         except: IndexError
             # need to fix 
             
-        
     def power_shell_display(self, path, run = True):
         
         if run == True:
+            
             path = os.path.join(self.working_path, self.file_list.get(path)) 
             
             p = subprocess.Popen(
@@ -406,7 +431,7 @@ class TreeSearch(tk.Frame):
             with open(path, encoding='utf-8-sig') as file:
                 file = file.read()
             if "<#" and "#>" and ".SYNOPSIS" not in file:
-                tkinter.messagebox.showinfo("Script Issue, you are going to be redirected to a script editing page to add comments.")
+                tkinter.messagebox.showinfo(message="Script Issue, you are going to be redirected to a script editing page to add comments.", title="Script Error")
                 self.window_fill(script_edit=True, path=path)
             else: 
                 self.text_display.delete('1.0', tk.END)
@@ -479,4 +504,5 @@ def find_or_create_config():
             
 if __name__ == "__main__":
     testObj = windows()
+    testObj.geometry("800x600")
     testObj.mainloop()
