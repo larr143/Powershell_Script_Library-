@@ -5,7 +5,6 @@ import tkinter as tk
 import tkinter.messagebox
 from tkinter import simpledialog, ttk
 
-
 class windows(tk.Tk):
     """windows Classmethod to handle windows .
 
@@ -654,7 +653,7 @@ class TreeSearch(tk.Frame):
         # Destroy all widgets inside the frame
         for widget in self.winfo_children():
             widget.destroy() 
-            
+               
 if __name__ == "__main__":
     testObj = windows()
     testObj.mainloop()
