@@ -1,11 +1,10 @@
-import tkinter as tk
-from tkinter import ttk
-import os 
-import tkinter.messagebox
+import os
 import re
 import subprocess
-from tkinter import simpledialog
-from pathlib import Path
+import tkinter as tk
+import tkinter.messagebox
+from tkinter import simpledialog, ttk
+
 
 class windows(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -61,18 +60,18 @@ class windows(tk.Tk):
     def help_dialog(self):
         """help_dialog Creates help dialog when called"""        
         message = """
-            If you are having troubles with entering your code into the entry box.
-	            - Make sure the code is properly indented, if the function you enter 
-	            starts with a tab or spaces in-front of it, it isn't properly indented
-	            - For example, the first main is correct the second is tabbed wrong.
-            def main():
-	            print("Hello World!")
-
-	            def main():
-		            print("Hello World!")
-
-            If all of that isn't working you can use the open button on the
-            menu in the home window to add your code directly from a python file. 
+        If you are having trouble using the search dialog enter words that are in the name of the script you 
+        are looking for. The words are case sensitive. 
+        If you are looking for Set_Execution_Policy.ps1. 
+        Searches that will show this script: 
+        1. Set
+        2. Execution
+        3. .ps1 - will return all scripts in library
+        4. Set_Exe
+        Searches that wont return this script:
+        1. set
+        2.execution
+        3. set execution - you can't substitute underlines. 
         """
         
         tkinter.messagebox.showinfo("Help", message)
@@ -80,10 +79,10 @@ class windows(tk.Tk):
     def about_dialog(self):
         """about_dialog Creates about dialog when called"""        
         message = """
-        This program is a Code reviewer that takes in any size of python program.
-        It will then pass that program to Pylint, once Pylint reports, the reports are then sent to ChatGPT. 
-        ChatGPT will then reword the reports to help new users understand the problems with the program. 
-        This includes errors, warnings, convention, and refactoring. 
+        This program creates a library on your computer at the location you choose. 
+        The program also creates a config file where the program is stored that will point 
+        the program to the library on startup. If you are looking to search for a script in the library 
+        you can use the file menu for searching.  
 
         This program was written by Larry Tieken. 
         """
@@ -91,10 +90,28 @@ class windows(tk.Tk):
         tkinter.messagebox.showinfo("Help", message)
         
     def open(self):
-        config = find_or_create_config()
+        config = self.find_or_create_config()
         path = config.read()
         os.system("explorer.exe " + path)   
         print(path) 
+        
+    def find_or_create_config(self):
+        script_library_path = os.path.join(os.getcwd(), 'scriptLibrary')
+        script_library_file_path = os.path.join(script_library_path, 'ScriptLibrary.txt')
+
+        # Check if the script library directory exists
+        if not os.path.exists(script_library_path):
+            os.makedirs(script_library_path)
+
+        # Check if the ScriptLibrary.txt file exists
+        if not os.path.exists(script_library_file_path):
+            with open(script_library_file_path, 'w') as configFile:
+                # Write default content or leave it empty
+                pass
+
+        # Open the file in read mode
+        configFile = open(script_library_file_path, 'r+')
+        return configFile
     
     def show_frame(self, cont):
         frame = self.frames[cont]
@@ -105,7 +122,7 @@ class MainPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        self.config = find_or_create_config()
+        self.config = self.controller.find_or_create_config()
         self.what_to_display()
    
     def clear_page(self):
@@ -152,13 +169,13 @@ class MainPage(tk.Frame):
         style=ttk.Style(self)
         style.theme_use('alt')
         
-        self.label.config(background='#1B1B1E',foreground="#F3B61F")
+        self.label.config(background='#141414',foreground="#F3B61F")
         self.switch_to_Config_button.config(foreground="#F3B61F", background='#252525', 
             width=20, height=5)
         self.switch_to_TreeSearch_button.config(foreground="#F3B61F",  background='#252525',
             width=20, height=5)
         
-        self.configure(bg='#1B1B1E')
+        self.configure(bg='#141414')
 
 class LibraryCreatorOrLocator(tk.Frame):
     def __init__(self, parent, controller):
@@ -177,10 +194,9 @@ class LibraryCreatorOrLocator(tk.Frame):
         button = tk.Button(self, text="Enter", command=self.find_path)
         button.pack(padx=10, pady=10)
         
-
     def find_path(self):
         
-        self.config = find_or_create_config()
+        self.config = self.controller.find_or_create_config()
         
         self.path = self.entry1.get()
         
@@ -232,8 +248,8 @@ class TreeSearch(tk.Frame):
         if script_edit == False:
             self.label = tk.Label(self, text="Welcome to Tree Search")
             self.file_list = tk.Listbox(self)
-            self.text_display = tk.Text(self)
-            self.script_description_display = tk.Text(self)
+            self.text_display = tk.Text(self, exportselection = False)
+            self.script_description_display = tk.Text(self, exportselection = False)
         
             self.go_Back_Button = tk.Button(
                 self, text="Go to home page",
@@ -345,20 +361,20 @@ class TreeSearch(tk.Frame):
             self.grid_columnconfigure(0, weight=1)
             self.grid_rowconfigure([0,1,3], weight=1)
             
-            self.label.config(background="#1B1B1E", foreground="#F3B61F", font=(14))
+            self.label.config(background="#141414", foreground="#F3B61F", font=(14))
             
-            self.file_list.config(background="#1B1B1E", foreground="#F3B61F")
-            self.text_display.config(background="#1B1B1E", foreground="#F3B61F")
-            self.script_description_display.config(background="#1B1B1E", foreground="#F26157")
+            self.file_list.config(background="#141414", foreground="#F3B61F")
+            self.text_display.config(background="#141414", foreground="#F3B61F")
+            self.script_description_display.config(background="#141414", foreground="#F26157")
             
             style=ttk.Style(self)
             style.theme_use('alt')
             style.configure("Vertical.TScrollbar", relief = 0,
-                background="#8A4F7D", troughcolor = "#1B1B1E")
+                background="#8A4F7D", troughcolor = "#141414")
             style.configure("Horizontal.TScrollbar", relief = 0, 
-                background="#8A4F7D", troughcolor = "#1B1B1E")
+                background="#8A4F7D", troughcolor = "#141414")
         
-            self.configure(bg='#1B1B1E')
+            self.configure(bg='#141414')
         
         elif script_edit == True:
             
@@ -422,41 +438,37 @@ class TreeSearch(tk.Frame):
         self.window_fill()
         self.run_script["state"] = "disabled"
         self.in_search = False
-        self.config = find_or_create_config()
+        self.config = self.controller.find_or_create_config()
         self.working_path = self.library_path = self.config.read()
         self.config.close()
         self.path_to_cwd_list()
              
     def show_content(self, event):
         
-        try:
-            x = self.file_list.curselection()[0]
-            if self.in_search == False:
-                file = os.path.join(self.working_path, self.file_list.get(x))
-            elif self.in_search == True: 
-                for i in self.dr_list:
-                    if self.file_list.get(x) in i:
-                        file = i
-                        break
+        x = self.file_list.curselection()[0]
+        if self.in_search == False:
+            file = os.path.join(self.working_path, self.file_list.get(x))
+        elif self.in_search == True: 
+            for i in self.dr_list:
+                if self.file_list.get(x) in i:
+                    file = i
+                    break
             
-            if ".txt" in file:
-                with open(file) as file:
-                    file = file.read()
-                self.run_script["state"] = "disabled"
-                self.text_display.delete('1.0', tk.END)
-                self.text_display.insert(tk.END, file)
-                self.script_description_display.delete('1.0', tk.END)
-            elif ".ps1" in file:
-                self.power_shell_display(file, run=False)
-                self.run_script["state"] = "normal"
-            else: 
-                self.run_script["state"] = "disabled"
-                self.text_display.delete('1.0', tk.END)
-                self.script_description_display.delete('1.0', tk.END)
-                self.text_display.insert(tk.END, "This is a folder named: " + os.path.basename(file)) 
-            
-        except: IndexError
-            # need to fix 
+        if ".txt" in file:
+            with open(file) as file:
+                file = file.read()
+            self.run_script["state"] = "disabled"
+            self.text_display.delete('1.0', tk.END)
+            self.text_display.insert(tk.END, file)
+            self.script_description_display.delete('1.0', tk.END)
+        elif ".ps1" in file:
+            self.power_shell_display(file, run=False)
+            self.run_script["state"] = "normal"
+        else: 
+            self.run_script["state"] = "disabled"
+            self.text_display.delete('1.0', tk.END)
+            self.script_description_display.delete('1.0', tk.END)
+            self.text_display.insert(tk.END, "This is a folder named: " + os.path.basename(file)) 
         
     def user_search(self):
         self.in_search = False
@@ -560,25 +572,6 @@ class TreeSearch(tk.Frame):
         # Destroy all widgets inside the frame
         for widget in self.winfo_children():
             widget.destroy() 
-     
-        
-def find_or_create_config():
-    script_library_path = os.path.join(os.getcwd(), 'scriptLibrary')
-    script_library_file_path = os.path.join(script_library_path, 'ScriptLibrary.txt')
-
-    # Check if the script library directory exists
-    if not os.path.exists(script_library_path):
-        os.makedirs(script_library_path)
-
-    # Check if the ScriptLibrary.txt file exists
-    if not os.path.exists(script_library_file_path):
-        with open(script_library_file_path, 'w') as configFile:
-            # Write default content or leave it empty
-            pass
-
-    # Open the file in read mode
-    configFile = open(script_library_file_path, 'r+')
-    return configFile
             
 if __name__ == "__main__":
     testObj = windows()
