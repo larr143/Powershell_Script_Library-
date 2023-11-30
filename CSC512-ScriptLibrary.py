@@ -7,29 +7,31 @@ from tkinter import simpledialog, ttk
 
 
 class windows(tk.Tk):
+    """windows Classmethod to handle windows .
+
+    This class is the base frame that handles the containing and switching of 
+    other frames. It also handles the styling of the main frame, including
+    the menus options and dialogs. 
+
+    Attributes:
+        frames: A dictionary for containing tkinter frames.
+
+    Args:
+        tk ([tkinter]): [a reference to the root window of the Tkinter application]
+    """
     def __init__(self, *args, **kwargs):
+        """__init__ Initialize the Tk ."""
         tk.Tk.__init__(self, *args, **kwargs)
-        
-        # Adding a title to the window
+        self.frames = {}
+
         self.wm_title("Script Library")
-
-        # creating a frame and assigning it to container
         container = tk.Frame(self)
-        
-        # specifying the region where the frame is packed in root
         container.pack(side="top", fill="both", expand=True)
-
-        # configuring the location of the container using grid
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        # We will now create a dictionary of frames
-        self.frames = {}
-        
-        # we'll create the frames themselves later but let's add the components to the dictionary.
         for F in (MainPage, TreeSearch, LibraryCreatorOrLocator):
             frame = F(container, self)
-
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
             
@@ -90,12 +92,19 @@ class windows(tk.Tk):
         tkinter.messagebox.showinfo("Help", message)
         
     def open(self):
+        """opens file explorer at the library's location """
         config = self.find_or_create_config()
         path = config.read()
         os.system("explorer.exe " + path)   
         print(path) 
         
     def find_or_create_config(self):
+        """find_or_create_config Finds the config file for the program and returns it.
+
+        Returns:
+            TextIOWrapper: The file that contains the config for the program.
+        """
+        
         script_library_path = os.path.join(os.getcwd(), 'scriptLibrary')
         script_library_file_path = os.path.join(script_library_path, 'ScriptLibrary.txt')
 
@@ -106,7 +115,6 @@ class windows(tk.Tk):
         # Check if the ScriptLibrary.txt file exists
         if not os.path.exists(script_library_file_path):
             with open(script_library_file_path, 'w') as configFile:
-                # Write default content or leave it empty
                 pass
 
         # Open the file in read mode
@@ -114,12 +122,29 @@ class windows(tk.Tk):
         return configFile
     
     def show_frame(self, cont):
+        """show_frame Raises desired container
+
+        Args:
+            cont (Container): Contains the container the program wants to display.
+        """
         frame = self.frames[cont]
         if cont is TreeSearch: frame.directory_display()
         frame.tkraise()
         
 class MainPage(tk.Frame):
+    """MainPage 
+    
+    Fills the frame with either the main page to select the tree search or 
+    send the user to config creation if there isn't one found in find_or_create_config.
+
+    Attributes:
+        config: A variable that contains the config file. 
+
+    Args:
+        tk ([tkinter]): [a reference to the root window of the Tkinter application]
+    """
     def __init__(self, parent, controller):
+        """__init__ Initialize the Tk ."""
         tk.Frame.__init__(self, parent)
         self.controller = controller
         self.config = self.controller.find_or_create_config()
@@ -131,7 +156,7 @@ class MainPage(tk.Frame):
             widget.destroy() 
 
     def what_to_display(self):
-        
+        """Decides whether the program is going to create a config or go to tree search."""
         self.clear_page()
         
         self.label = tk.Label(self, text="Welcome To Your Script Library!", font=(20))
@@ -143,14 +168,12 @@ class MainPage(tk.Frame):
             command=lambda: [self.controller.show_frame(LibraryCreatorOrLocator), self.config.close()],
              font=(16)
         )
-        
         self.switch_to_TreeSearch_button = tk.Button(
             self,
             text="Tree Script Search",
             command=lambda: [self.controller.show_frame(TreeSearch), self.config.close()],
             font=(16)
         )
-        
         
         if self.config.read() == "":
             self.label = tk.Label(self, text= "Please click on find or create library button to create or find your script library.")
@@ -163,7 +186,7 @@ class MainPage(tk.Frame):
         self.page_style()
 
     def page_style(self):
-        
+        """Styles the container and widgets."""
         self.controller.geometry("400x400")
         
         style=ttk.Style(self)
@@ -178,15 +201,23 @@ class MainPage(tk.Frame):
         self.configure(bg='#141414')
 
 class LibraryCreatorOrLocator(tk.Frame):
+    """LibraryCreatorOrLocator Allows the user to choose a location for the library and create a config.
+
+    Attributes:
+        path: A string that will contain the users chosen location for the library
+
+    Args:
+        tk ([tkinter]): [a reference to the root window of the Tkinter application]
+    """
     def __init__(self, parent, controller):
+        """__init__ Initialize the Tk ."""
         tk.Frame.__init__(self, parent)
         
         self.controller = controller
+        self.path = ""
         
         label = tk.Label(self, text = "Please input the path of your script library or the path where you want the library created.")
         label.pack(padx=10, pady=10)
-        
-        self.path = ""
         
         self.entry1 = tk.Entry(self, width= 40)
         self.entry1.pack(padx=10,pady=10)
@@ -195,9 +226,8 @@ class LibraryCreatorOrLocator(tk.Frame):
         button.pack(padx=10, pady=10)
         
     def find_path(self):
-        
+        """Attempts to find the path the user has given. """
         self.config = self.controller.find_or_create_config()
-        
         self.path = self.entry1.get()
         
         if self.path: 
@@ -231,8 +261,18 @@ class LibraryCreatorOrLocator(tk.Frame):
             self.path = ""
 
 class TreeSearch(tk.Frame):
-    
+    """TreeSearch _summary_
+
+    Attributes:
+        Library_path: A string that will contain the library path. 
+        Working_path: A string that will contain the programs current working path
+        config: A variable that will contain the TextIOWrapper for the config file.
+
+    Args:
+        tk ([tkinter]): [a reference to the root window of the Tkinter application]
+    """
     def __init__(self, parent, controller):
+        """__init__ Initialize the Tk ."""
         tk.Frame.__init__(self, parent)
         self.controller = controller
         self.library_path = ""
@@ -240,9 +280,13 @@ class TreeSearch(tk.Frame):
         self.config = None
                
     def window_fill(self, script_edit = False, path = None):
-        
+        """window_fill initializes all widgets of the TreeSearch Page.
+
+        Args:
+            script_edit (bool, optional): Changes the frame to allow user to edit script.   Defaults to False.
+            path (_type_, optional): For editing the script at path if script edit is True. Defaults to None.
+        """
         self.clear_page()
-        
         self.controller.fileMenu.entryconfig("Search For Script",state='normal')
         
         if script_edit == False:
@@ -351,7 +395,12 @@ class TreeSearch(tk.Frame):
             self.window_style(True)
             
     def window_style(self, script_edit=None):
+        """Styles the container and widgets.
         
+        Args:
+            script_edit (bool, optional): tells the program which version of the window to style.
+        
+        """
         if script_edit == None:
             self.controller.geometry("800x600")
             
@@ -402,10 +451,19 @@ class TreeSearch(tk.Frame):
             self.configure(bg='#1B1B1E')
                    
     def script_comment_adder(self, path):
+        """Takes the path of the script and displays contents on the page.
         
+        When called the function will take the path of the script split it into 
+        the comments on the script and the script itself. Insert the parts into their
+        respective text boxes. 
+
+        Args:
+            path (Str): Path of the file to display.
+        """
         readable_file = open(path, encoding='utf-8-sig' , mode="r")
         readable_file_contents = readable_file.read()
         
+        #Checks for a multi line string in the script.
         if "<#" in readable_file_contents: 
                 readable_file.close()
                 writable_file = open(path, encoding='utf-8-sig' , mode="w+")
@@ -417,6 +475,7 @@ class TreeSearch(tk.Frame):
         
         file = open(path, encoding='utf-8-sig' , mode="a")
         
+        #creates comments with players input.
         if len(self.synopsis_entry_box.get('1.0', 'end-1c')) > 0 and len(self.notes_entry_box.get('1.0', 'end-1c')) > 0:
             
             synopsis = self.synopsis_entry_box.get('1.0', 'end-1c')
@@ -435,6 +494,8 @@ class TreeSearch(tk.Frame):
             self.directory_display()
                
     def directory_display(self):
+        """directory_display initializes the window building functions and configs.
+        """
         self.window_fill()
         self.run_script["state"] = "disabled"
         self.in_search = False
@@ -444,7 +505,12 @@ class TreeSearch(tk.Frame):
         self.path_to_cwd_list()
              
     def show_content(self, event):
-        
+        """show_content displays information on selected entry in list box.
+
+        Args:
+            event (<<listboxselect>>): tells function the user selected something.
+        """
+        #grabs file to display based on if the user is searching or not.
         x = self.file_list.curselection()[0]
         if self.in_search == False:
             file = os.path.join(self.working_path, self.file_list.get(x))
@@ -471,6 +537,8 @@ class TreeSearch(tk.Frame):
             self.text_display.insert(tk.END, "This is a folder named: " + os.path.basename(file)) 
         
     def user_search(self):
+        """user_search creates a simple dialog for searching through scripts.
+        """
         self.in_search = False
         result = []
         input = simpledialog.askstring(title="Search Dialog",
@@ -487,8 +555,13 @@ class TreeSearch(tk.Frame):
         else:
             tkinter.messagebox.showinfo("Error", "Script was not found try again." )      
         
-    def power_shell_display(self, path, run = None):
+    def power_shell_display(self, path, run):
+        """ Displays currently selected power shell and makes the user edit it if there isn't a comment.
         
+        Args:
+            path (Str): Contains the path to the script to either run or display. 
+            run (Bool): A bool for either displaying or running passed script at path. 
+        """
         if run == True:
             
             if self.in_search == False:
@@ -542,7 +615,16 @@ class TreeSearch(tk.Frame):
                     "Full description of script: \n" + description_content + "\n\n" + "Script notes: \n" + notes_content)               
     
     def path_to_cwd_list(self, files_to_display = None, pathToJoin = None, go_back = None):
-        
+        """path_to_cwd_list Populates the file list based on current working path
+
+        Args:
+            files_to_display (List[str], optional): A list containing paths for when users 
+                search for scripts. Defaults to None.
+            pathToJoin (Str, optional): A string that contains where 
+                the user wants to go. Defaults to None.
+            go_back (Bool, optional): A bool for if the user wants to 
+                go back in the file structure . Defaults to None.
+        """
         
         if go_back == True and self.in_search == False:
             if self.working_path != self.library_path:
