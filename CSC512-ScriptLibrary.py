@@ -1,15 +1,11 @@
-from ast import Pass
-from logging import captureWarnings
-from operator import contains
-from pydoc import synopsis
 import tkinter as tk
 from tkinter import ttk
 import os 
 import tkinter.messagebox
 import re
 import subprocess
-import sys
-from turtle import back
+from tkinter import simpledialog
+from pathlib import Path
 
 class windows(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -19,7 +15,7 @@ class windows(tk.Tk):
         self.wm_title("Script Library")
 
         # creating a frame and assigning it to container
-        container = tk.Frame(self, width=400,height=600)
+        container = tk.Frame(self)
         
         # specifying the region where the frame is packed in root
         container.pack(side="top", fill="both", expand=True)
@@ -32,18 +28,76 @@ class windows(tk.Tk):
         self.frames = {}
         
         # we'll create the frames themselves later but let's add the components to the dictionary.
-        for F in (MainPage, SearchPage,TreeSearch, LibraryCreatorOrLocator):
+        for F in (MainPage, TreeSearch, LibraryCreatorOrLocator):
             frame = F(container, self)
 
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
-        
-        # Using a method to switch frames
+            
+        self.menu_bar()
         self.show_frame(MainPage) 
+
+    def menu_bar(self):
+        """menu_bar called to create the menubar ar the top of the program"""
         
+        menuBar = tk.Menu(self)
+        self.fileMenu = tk.Menu(menuBar, tearoff=0)
+        self.fileMenu.add_command(label="Open Library Location", command=self.open)
+        self.fileMenu.add_command(label="Search For Script",
+            command=self.frames[TreeSearch].user_search, state="disabled")
+        self.fileMenu.add_separator()
+        self.fileMenu.add_command(label="Exit", command=self.quit)
+        menuBar.add_cascade(label="File", menu=self.fileMenu)
+        
+        helpMenu = tk.Menu(menuBar, tearoff=0)
+        helpMenu.add_command(label="Help Index",
+            command=self.help_dialog)
+        helpMenu.add_command(label="About...",
+            command=self.about_dialog)
+        menuBar.add_cascade(label="Help", menu=helpMenu)
+        
+        self.config(menu=menuBar)
+    
+    def help_dialog(self):
+        """help_dialog Creates help dialog when called"""        
+        message = """
+            If you are having troubles with entering your code into the entry box.
+	            - Make sure the code is properly indented, if the function you enter 
+	            starts with a tab or spaces in-front of it, it isn't properly indented
+	            - For example, the first main is correct the second is tabbed wrong.
+            def main():
+	            print("Hello World!")
+
+	            def main():
+		            print("Hello World!")
+
+            If all of that isn't working you can use the open button on the
+            menu in the home window to add your code directly from a python file. 
+        """
+        
+        tkinter.messagebox.showinfo("Help", message)
+    
+    def about_dialog(self):
+        """about_dialog Creates about dialog when called"""        
+        message = """
+        This program is a Code reviewer that takes in any size of python program.
+        It will then pass that program to Pylint, once Pylint reports, the reports are then sent to ChatGPT. 
+        ChatGPT will then reword the reports to help new users understand the problems with the program. 
+        This includes errors, warnings, convention, and refactoring. 
+
+        This program was written by Larry Tieken. 
+        """
+        
+        tkinter.messagebox.showinfo("Help", message)
+        
+    def open(self):
+        config = find_or_create_config()
+        path = config.read()
+        os.system("explorer.exe " + path)   
+        print(path) 
+    
     def show_frame(self, cont):
         frame = self.frames[cont]
-        if cont is MainPage: [frame.config_init(), frame.what_to_display()]
         if cont is TreeSearch: frame.directory_display()
         frame.tkraise()
         
@@ -51,52 +105,60 @@ class MainPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        self.config = None
+        self.config = find_or_create_config()
+        self.what_to_display()
    
     def clear_page(self):
         # Destroy all widgets inside the frame
         for widget in self.winfo_children():
             widget.destroy() 
-            
-    def config_init(self):  
-        self.config = find_or_create_config()
 
     def what_to_display(self):
         
         self.clear_page()
         
-        label = tk.Label(self, text="Welcome To Your Script Library!")
-        label.pack(padx=10, pady=10)
+        self.label = tk.Label(self, text="Welcome To Your Script Library!", font=(20))
+        self.label.grid(column=0, row=0, padx=2, pady=2)
+        
+        self.switch_to_Config_button = tk.Button(
+            self,
+            text="Find Or Create Library",
+            command=lambda: [self.controller.show_frame(LibraryCreatorOrLocator), self.config.close()],
+             font=(16)
+        )
+        
+        self.switch_to_TreeSearch_button = tk.Button(
+            self,
+            text="Tree Script Search",
+            command=lambda: [self.controller.show_frame(TreeSearch), self.config.close()],
+            font=(16)
+        )
+        
         
         if self.config.read() == "":
-            label = tk.Label(self, text= "Please click on find or create library button to create or find your script library.")
-
-            switch_to_Config_button = tk.Button(
-                self,
-                text="Find Or Create Library",
-                command=lambda: [self.controller.show_frame(LibraryCreatorOrLocator), self.config.close()],
-            )
-            switch_to_Config_button.pack(side="bottom", fill=tk.X)
-   
-            
+            self.label = tk.Label(self, text= "Please click on find or create library button to create or find your script library.")
+            self.switch_to_Config_button.grid(column=0, row=1, padx=2, pady=2)
         else:
-             
-            
-            # We use the switch_to_search_button in order to call the show_frame() method as a lambda function
-            switch_to_search_button = tk.Button(
-                self,
-                text="Search For Scripts",
-                command=lambda: [self.controller.show_frame(SearchPage), self.config.close()],
-            )
-            switch_to_search_button.pack(side="bottom", fill=tk.X)
+            self.switch_to_TreeSearch_button.grid(column=0, row=1, padx=2, pady=2)
         
-            # Switch to Tree search
-            switch_to_TreeSearch_button = tk.Button(
-                self,
-                text="Tree Script Search",
-            command=lambda: [self.controller.show_frame(TreeSearch), self.config.close()],
-            )
-            switch_to_TreeSearch_button.pack(side="bottom", fill=tk.X)
+        self.grid_rowconfigure([0,1], weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.page_style()
+
+    def page_style(self):
+        
+        self.controller.geometry("400x400")
+        
+        style=ttk.Style(self)
+        style.theme_use('alt')
+        
+        self.label.config(background='#1B1B1E',foreground="#F3B61F")
+        self.switch_to_Config_button.config(foreground="#F3B61F", background='#252525', 
+            width=20, height=5)
+        self.switch_to_TreeSearch_button.config(foreground="#F3B61F",  background='#252525',
+            width=20, height=5)
+        
+        self.configure(bg='#1B1B1E')
 
 class LibraryCreatorOrLocator(tk.Frame):
     def __init__(self, parent, controller):
@@ -151,21 +213,6 @@ class LibraryCreatorOrLocator(tk.Frame):
             
         else:
             self.path = ""
-        
-class SearchPage(tk.Frame):
-    
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
-        
-        label = tk.Label(self, text="This Is the Search Page")
-        label.pack(padx=10, pady=10)
-
-        go_Back_Button = tk.Button(
-            self,
-            text="Go Back",
-            command=lambda: controller.show_frame(MainPage),
-        )
-        go_Back_Button.pack(side="bottom", fill=tk.X)
 
 class TreeSearch(tk.Frame):
     
@@ -175,11 +222,12 @@ class TreeSearch(tk.Frame):
         self.library_path = ""
         self.working_path = ""
         self.config = None
-    
-        
+               
     def window_fill(self, script_edit = False, path = None):
         
         self.clear_page()
+        
+        self.controller.fileMenu.entryconfig("Search For Script",state='normal')
         
         if script_edit == False:
             self.label = tk.Label(self, text="Welcome to Tree Search")
@@ -198,7 +246,7 @@ class TreeSearch(tk.Frame):
             self.open_selected_file = tk.Button(
                 self, text="Open Selected File",
                 command=lambda:  self.path_to_cwd_list(
-                    self.file_list.get(self.file_list.curselection())
+                    pathToJoin=self.file_list.get(self.file_list.curselection())
                     )
             )
             self.run_script = tk.Button(
@@ -336,8 +384,7 @@ class TreeSearch(tk.Frame):
             self.grid_columnconfigure(1, weight=1)
             
             self.configure(bg='#1B1B1E')
-        
-            
+                   
     def script_comment_adder(self, path):
         
         readable_file = open(path, encoding='utf-8-sig' , mode="r")
@@ -374,6 +421,7 @@ class TreeSearch(tk.Frame):
     def directory_display(self):
         self.window_fill()
         self.run_script["state"] = "disabled"
+        self.in_search = False
         self.config = find_or_create_config()
         self.working_path = self.library_path = self.config.read()
         self.config.close()
@@ -383,7 +431,13 @@ class TreeSearch(tk.Frame):
         
         try:
             x = self.file_list.curselection()[0]
-            file = os.path.join(self.working_path, self.file_list.get(x))
+            if self.in_search == False:
+                file = os.path.join(self.working_path, self.file_list.get(x))
+            elif self.in_search == True: 
+                for i in self.dr_list:
+                    if self.file_list.get(x) in i:
+                        file = i
+                        break
             
             if ".txt" in file:
                 with open(file) as file:
@@ -391,35 +445,53 @@ class TreeSearch(tk.Frame):
                 self.run_script["state"] = "disabled"
                 self.text_display.delete('1.0', tk.END)
                 self.text_display.insert(tk.END, file)
+                self.script_description_display.delete('1.0', tk.END)
             elif ".ps1" in file:
                 self.power_shell_display(file, run=False)
                 self.run_script["state"] = "normal"
             else: 
                 self.run_script["state"] = "disabled"
                 self.text_display.delete('1.0', tk.END)
+                self.script_description_display.delete('1.0', tk.END)
                 self.text_display.insert(tk.END, "This is a folder named: " + os.path.basename(file)) 
             
         except: IndexError
             # need to fix 
-            
-    def power_shell_display(self, path, run = True):
+        
+    def user_search(self):
+        self.in_search = False
+        result = []
+        input = simpledialog.askstring(title="Search Dialog",
+            prompt="(Case sensitive) Name of script you are looking for:")
+        
+        for root, dirs, files in os.walk(self.library_path):
+            for name in files:
+                if input in name:
+                    result.append(os.path.join(root, os.path.basename(name)))
+        
+        if len(result) > 0:
+            self.in_search = True
+            self.path_to_cwd_list(files_to_display=result)
+        else:
+            tkinter.messagebox.showinfo("Error", "Script was not found try again." )      
+        
+    def power_shell_display(self, path, run = None):
         
         if run == True:
             
-            path = os.path.join(self.working_path, self.file_list.get(path)) 
-            
-            p = subprocess.Popen(
-            [
-                "powershell.exe", 
-                "-noprofile", "-c",
-                r""" exit (Start-Process -Verb RunAs -PassThru -Wait powershell.exe -Args "
-                        -noprofile -c Set-Location \`"$PWD\`"; & {path}; exit `$LASTEXITCODE
-                    "
-                ).ExitCode
-                """.format(path=path)
-            ],
-            stdout=subprocess.PIPE
-            )
+            if self.in_search == False:
+                path = os.path.join(self.working_path, self.file_list.get(path))
+            elif self.in_search == True: 
+                for i in self.dr_list:
+                    if self.file_list.get(path) in i:
+                        path = i
+                        break
+
+                        
+            p = subprocess.Popen([
+                "powershell.exe", "-File", f"""{path}"""
+            ],stdout=subprocess.PIPE)
+
             output, err = p.communicate()
             
             self.text_display.delete('1.0', tk.END)
@@ -430,7 +502,7 @@ class TreeSearch(tk.Frame):
         if run == False:
             with open(path, encoding='utf-8-sig') as file:
                 file = file.read()
-            if "<#" and "#>" and ".SYNOPSIS" not in file:
+            if "<#" and "#>" and ".SYNOPSIS" not in file: 
                 tkinter.messagebox.showinfo(message="Script Issue, you are going to be redirected to a script editing page to add comments.", title="Script Error")
                 self.window_fill(script_edit=True, path=path)
             else: 
@@ -457,32 +529,38 @@ class TreeSearch(tk.Frame):
                 self.script_description_display.insert(tk.END, "Summary of script: \n" + synopsis_content + "\n\n" +
                     "Full description of script: \n" + description_content + "\n\n" + "Script notes: \n" + notes_content)               
     
-    def path_to_cwd_list(self, pathToJoin = None, go_back = None):
+    def path_to_cwd_list(self, files_to_display = None, pathToJoin = None, go_back = None):
         
-        if go_back == True:
-            self.working_path = os.path.dirname(self.working_path)
+        
+        if go_back == True and self.in_search == False:
+            if self.working_path != self.library_path:
+                self.working_path = os.path.dirname(self.working_path)
+        elif self.in_search == True and go_back == True:
+            self.in_search = False
         
         if pathToJoin != None:
             self.working_path = os.path.join(self.working_path, pathToJoin)
         
-        dr_list = os.listdir(self.working_path)
+        if files_to_display != None:
+            self.dr_list = files_to_display
+        else:
+            self.dr_list = os.listdir(self.working_path)
         
         self.file_list.delete(0, tk.END)
         
-        for item in dr_list:
+        for item in self.dr_list:
             if ".txt" in item:
-                self.file_list.insert(tk.END, item)
+                self.file_list.insert(tk.END, os.path.basename(item))
             if "." not in item:
-                self.file_list.insert(tk.END, item)
+                self.file_list.insert(tk.END, os.path.basename(item))
             if ".ps1" in item:
-                self.file_list.insert(tk.END, item)
+                self.file_list.insert(tk.END, os.path.basename(item))
     
     def clear_page(self):
         # Destroy all widgets inside the frame
         for widget in self.winfo_children():
             widget.destroy() 
-    
-             
+     
         
 def find_or_create_config():
     script_library_path = os.path.join(os.getcwd(), 'scriptLibrary')
@@ -504,5 +582,4 @@ def find_or_create_config():
             
 if __name__ == "__main__":
     testObj = windows()
-    testObj.geometry("800x600")
     testObj.mainloop()
