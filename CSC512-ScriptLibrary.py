@@ -1,9 +1,10 @@
+from ast import main
 import os
 import re
 import subprocess
 import tkinter as tk
 import tkinter.messagebox
-from tkinter import simpledialog, ttk
+from tkinter import simpledialog, ttk, filedialog
 
 class windows(tk.Tk):
     """windows Classmethod to handle windows .
@@ -127,6 +128,7 @@ class windows(tk.Tk):
             cont (Container): Contains the container the program wants to display.
         """
         frame = self.frames[cont]
+        if cont is MainPage: frame.what_to_display()
         if cont is TreeSearch: frame.directory_display()
         frame.tkraise()
         
@@ -146,9 +148,7 @@ class MainPage(tk.Frame):
         """__init__ Initialize the Tk ."""
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        self.config = self.controller.find_or_create_config()
-        self.what_to_display()
-   
+        
     def clear_page(self):
         # Destroy all widgets inside the frame
         for widget in self.winfo_children():
@@ -158,12 +158,14 @@ class MainPage(tk.Frame):
         """Decides whether the program is going to create a config or go to tree search."""
         self.clear_page()
         
+        self.config = self.controller.find_or_create_config()
+        
         self.label = tk.Label(self, text="Welcome To Your Script Library!", font=(20))
         self.label.grid(column=0, row=0, padx=2, pady=2)
         
         self.switch_to_Config_button = tk.Button(
             self,
-            text="Find Or Create Library",
+            text="Change Library",
             command=lambda: [self.controller.show_frame(LibraryCreatorOrLocator), self.config.close()],
              font=(16)
         )
@@ -175,8 +177,9 @@ class MainPage(tk.Frame):
         )
         
         if self.config.read() == "":
-            self.label = tk.Label(self, text= "Please click on find or create library button to create or find your script library.")
+            self.label.config(text= "Please click on the Find Library \n button to create or find your script library.")
             self.switch_to_Config_button.grid(column=0, row=1, padx=2, pady=2)
+            self.switch_to_Config_button.config(text="Find or Create Library")
         else:
             self.switch_to_TreeSearch_button.grid(column=0, row=1, padx=2, pady=2)
         
@@ -215,49 +218,45 @@ class LibraryCreatorOrLocator(tk.Frame):
         self.controller = controller
         self.path = ""
         
-        label = tk.Label(self, text = "Please input the path of your script library or the path where you want the library created.")
-        label.pack(padx=10, pady=10)
+        self.controller.geometry("400x400")
         
-        self.entry1 = tk.Entry(self, width= 40)
-        self.entry1.pack(padx=10,pady=10)
+        style=ttk.Style(self)
+        style.theme_use('alt')
         
-        button = tk.Button(self, text="Enter", command=self.find_path)
-        button.pack(padx=10, pady=10)
+        self.label = tk.Label(self, text = "Please click on the browse button to find \n your script library or input desired location")
+        self.label.config(background='#141414',foreground="#F3B61F")
+        self.label.pack(padx=10, pady=10)
         
+        self.browser = tk.Button(self, text="Browse", command=self.find_path)
+        self.browser.pack(padx=10, pady=10)
+        self.browser.config(foreground="#F3B61F", background='#252525', 
+            width=20, height=5)    
+        
+        self.configure(bg='#141414')
+    
     def find_path(self):
         """Attempts to find the path the user has given. """
         self.config = self.controller.find_or_create_config()
-        self.path = self.entry1.get()
+        self.path = filedialog.askdirectory()
+        dirList = os.listdir(self.path)
         
-        if self.path: 
-            if os.path.exists(self.path):
-                dirList = os.listdir(self.path)
+        if "ScriptLibrary" in self.path:
+            self.config.write(self.path)
+            self.config.close()
+            self.controller.show_frame(MainPage)
                 
-                if "ScriptLibrary" in dirList:
-                    self.path = os.path.join(self.path, "ScriptLibrary")
-                                        
-                    self.config.write(self.path)
-                    
-                    self.config.close()
-                    
-                    self.controller.show_frame(MainPage)
-                
-                
-                else:
-                    os.mkdir(os.path.join(self.path, "ScriptLibrary")) 
-                    self.path = os.path.join(self.path, "ScriptLibrary")
-                    
-                    self.config.write(self.path)
-                    
-                    self.config.close()
-                    
-                    self.controller.show_frame(MainPage)
-                
-            else:
-                self.path = ""
-            
+        elif "ScriptLibrary" in dirList:
+            self.path = os.path.join(self.path, "ScriptLibrary")                     
+            self.config.write(self.path)  
+            self.config.close()   
+            self.controller.show_frame(MainPage)
+
         else:
-            self.path = ""
+            os.mkdir(os.path.join(self.path, "ScriptLibrary")) 
+            self.path = os.path.join(self.path, "ScriptLibrary")
+            self.config.write(self.path)   
+            self.config.close()    
+            self.controller.show_frame(MainPage)
 
 class TreeSearch(tk.Frame):
     """TreeSearch _summary_
