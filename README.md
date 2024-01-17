@@ -1,2 +1,1 @@
-# CSC512-Project
-Lawrence Tieken's Computer Science Captstone Project / CSC512
+# Powershell Script Library
